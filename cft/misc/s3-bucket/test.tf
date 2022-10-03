@@ -1,12 +1,22 @@
 resource "aws_s3_bucket" "mybucket" {
   bucket = "mybucket"
-  acl = "public"
+  acl    = "private"
 
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
+        kms_master_key_id = "<kms_master_key_id>"
       }
     }
+  }
+
+  versioning {
+    enabled    = true
+    mfa_delete = true
+  }
+
+  versioning {
+    enabled = true
   }
 }
 
