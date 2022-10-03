@@ -20,7 +20,7 @@ resource "aws_security_group" "km_rds_sg" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["<cidr>"]
   }
 
   # outbound internet access
@@ -44,7 +44,7 @@ resource "aws_kms_key" "km_db_kms_key" {
 
 resource "aws_db_instance" "km_db" {
   name                      = "km_db_${var.environment}"
-  allocated_storage         = 20
+  allocated_storage         = 200
   engine                    = "postgres"
   engine_version            = "10.6"
   instance_class            = "db.t3.medium"
@@ -61,6 +61,8 @@ resource "aws_db_instance" "km_db" {
   tags = merge(var.default_tags, {
     Name = "km_db_${var.environment}"
   })
+  backup_retention_period             = 30
+  iam_database_authentication_enabled = true
 }
 
 resource "aws_ssm_parameter" "km_ssm_db_host" {
@@ -107,15 +109,96 @@ resource "aws_s3_bucket" "km_blob_storage" {
   tags = merge(var.default_tags, {
     name = "km_blob_storage_${var.environment}"
   })
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm     = "aws:kms"
+        kms_master_key_id = "<master_kms_key_id>"
+      }
+    }
+  }
+
+  versioning {
+    enabled    = true
+    mfa_delete = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm     = "aws:kms"
+        kms_master_key_id = "<master_kms_key_id>"
+      }
+    }
+  }
+
+  versioning {
+    enabled    = true
+    mfa_delete = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  versioning {
+    enabled = true
+  }
 }
 
 resource "aws_s3_bucket" "km_public_blob" {
   bucket = "km-public-blob"
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        kms_master_key_id = "<master_kms_key_id>"
+        sse_algorithm     = "aws:kms"
+      }
+    }
+  }
+
+  versioning {
+    enabled    = true
+    mfa_delete = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  versioning {
+    enabled = true
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "km_public_blob" {
   bucket = aws_s3_bucket.km_public_blob.id
 
-  block_public_acls   = false
-  block_public_policy = false
+  block_public_acls   = true
+  block_public_policy = true
+
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
